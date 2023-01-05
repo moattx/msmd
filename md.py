@@ -12,6 +12,7 @@ class Client:
     def __init__(self):
         self.playlists = []
         self.ytd_file_name = ""
+        self.current_dir = os.getcwd()
 
     def run(self):
         with open("md.conf", "r", encoding="utf8") as file:
@@ -23,6 +24,9 @@ class Client:
 
                 # hastag for playlist (directory)
                 if self.playlists[number][0] == "#":
+                    if os.getcwd() != self.current_dir:
+                        os.chdir(self.current_dir)
+
                     playlist_name = self.playlists[number].strip("#")
                     print("creating a playlist named " + playlist_name + "...")
                     os.mkdir(playlist_name)
