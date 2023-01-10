@@ -4,9 +4,6 @@ import sys
 import os
 from yt_dlp import YoutubeDL
 
-# TODO: if something already exists warn about it already existing then skip it
-# (in parse() maybe?)
-
 
 class Client:
     def __init__(self):
@@ -15,80 +12,88 @@ class Client:
         self.current_dir = os.getcwd()
 
     def run(self):
-        with open("md.conf", "r", encoding="utf8") as file:
-            self.parse(file)
+        self.parse()
+        print("playlist = ", self.playlists)
 
-            number = 0
+        number = 0
 
-            while number != len(self.playlists):
+        while number != len(self.playlists):
 
-                # hastag for playlist (directory)
-                if self.playlists[number][0] == "#":
-                    if os.getcwd() != self.current_dir:
-                        os.chdir(self.current_dir)
+            # hastag for playlist (directory)
+            if self.playlists[number][0] == "#":
+                if os.getcwd() != self.current_dir:
+                    os.chdir(self.current_dir)
 
-                    playlist_name = self.playlists[number].strip("#")
-                    print("creating a playlist named " + playlist_name + "...")
-                    os.mkdir(playlist_name)
-                    os.chdir(playlist_name)
-                    number = number + 1
-                    continue
-
-                ydl_opts = {
-                    "format": "m4a/bestaudio/best",
-                    "postprocessors": [
-                        {
-                            "key": "FFmpegExtractAudio",
-                            "preferredcodec": "m4a",
-                        }
-                    ],
-                    "progress_hooks": [self.my_hook],
-                }
-                with YoutubeDL(ydl_opts) as ydl:
-                    ydl.download([self.playlists[number]])
-
+                playlist_name = self.playlists[number].strip("#")
+                print("creating a playlist named " + playlist_name + "...")
+                os.mkdir(playlist_name)
+                os.chdir(playlist_name)
                 number = number + 1
-                file_name = self.playlists[number] + ".mp4"
+                continue
 
-                # update to go to next link or playlist name
-                number = number + 1
+            ydl_opts = {
+                "format": "m4a/bestaudio/best",
+                "postprocessors": [
+                    {
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "m4a",
+                    }
+                ],
+                "progress_hooks": [self.my_hook],
+            }
+            with YoutubeDL(ydl_opts) as ydl:
+                ydl.download([self.playlists[number]])
 
-                print("FILE_NAME = " + self.ytd_file_name)
-                if len(self.ytd_file_name) != 0:
-                    os.rename(self.ytd_file_name, file_name)
-        # finally change back to the previos directory TODO: check if this is
-        # neccesary
+            number = number + 1
+            file_name = self.playlists[number] + ".mp4"
+
+            # update to go to next link or playlist name
+            number = number + 1
+
+            print("FILE_NAME = " + self.ytd_file_name)
+            if len(self.ytd_file_name) != 0:
+                os.rename(self.ytd_file_name, file_name)
+        # finally change back to the previos directory
+        # TODO: check if this is neccesary
         os.chdir("..")
 
-    def parse(self, file):
-        for i in file:
-            if i == "\n":
-                continue
-            if i[0] == "#":
-                # TODO: is there any better way to do this?
-                # dont strip hashtag because it's needed in run() to check
-                # whether it's a playlist or not
-                self.playlists.append(i.strip("\n"))
-                print(self.playlists)
-                continue
+    def parse(self):
+        # tmplist = []
+        skip = False
+        # TODO: find a better way to get home dir?
+        with open(os.environ["HOME"] + "/.md.conf", "r", encoding="UTF-8") as file:
+            lines = list(line for line in (l.strip() for l in file) if line)
+            for line in lines:
+                if line[0] == "#":
+                    playlist = line.strip("#")
 
-            lst = i.split(" ")
-            self.playlists.append(lst[0])
-            self.playlists.append(lst[1].strip("\n"))
+                    if os.path.isdir(playlist):
+                        print(playlist + " exists...skipping...")
+                        skip = True
+                    else:
+                        skip = False
+
+                    if not skip:
+                        print(playlist + " is a playlist")
+                        # INFO: do not use the playlist var because it strips
+                        # '#' and '#' is needed in run()
+                        self.playlists.append(line)
+
+                    continue
+                if not skip:
+                    print("adding music for the playlist...")
+                    # link
+                    self.playlists.append(line.split(" ")[0])
+                    # name
+                    self.playlists.append(line.split(" ")[1])
 
     def my_hook(self, d):
         if d["status"] == "finished":
             self.ytd_file_name = d["filename"]
 
 
-def main():
-    try:
-        cli = Client()
-        cli.run()
-    except KeyboardInterrupt:
-        sys.exit()
-
-
 # MAIN
-if __name__ == "__main__":
-    main()
+try:
+    Client().run()
+except KeyboardInterrupt:
+    sys.exit()
