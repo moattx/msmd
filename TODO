@@ -1,3 +1,2 @@
 specifying the name should be optional fix that
-read ~/.md.conf instead of ./md.conf
 give the option to specify the audio format and default to opus?
