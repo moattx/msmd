@@ -1,2 +1,4 @@
-specifying the name should be optional fix that
 give the option to specify the audio format and default to opus?
+log errors in a file called ".ERRORS" (all caps), and notify the user of the file?
+use wget/curl for direct music links
+add parallelism
